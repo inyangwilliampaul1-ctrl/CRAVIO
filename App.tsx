@@ -115,6 +115,37 @@ export default function App() {
     }
   }, []);
 
+  // Restore Session from LocalStorage
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      if (token.startsWith('mock_token_')) {
+        // Mock Mode Restoration
+        const userId = token.replace('mock_token_', '');
+        if (userId === 'generic') {
+          setCurrentRole('CUSTOMER');
+        } else {
+          // Find user in mock data
+          const user = mockDataRaw.users.find((u: any) => u.id === userId);
+          if (user) {
+            setCurrentRole(user.role as UserRole);
+            if (user.role === 'VENDOR') {
+              // Also restore vendor profile if possible
+              const vendor = mockDataRaw.vendors.find((v: any) => v.id === 'd90acfb6-0b44-4d9c-bf92-e9e4eb035c15'); // Hardcoded mapping for demo or smarter lookup
+              if (vendor) setCurrentUserProfile(vendor as any);
+            }
+          }
+        }
+      } else {
+        // Real Backend Restoration (would usually call /auth/me)
+        // For now, if we have a token, we assume customer or force re-login if it expires.
+        // Let's just assume customer for safety in this hybrid state, or trigger a fetch.
+        console.log("Found real token, restoring session...");
+        // In a full implementation, we'd fetch profile here.
+      }
+    }
+  }, []);
+
   // Polling Effect based on Role
   useEffect(() => {
     if (!currentRole) return;

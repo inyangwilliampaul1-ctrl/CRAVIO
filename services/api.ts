@@ -58,8 +58,10 @@ export const auth = {
             // Find user in mock data
             const user = mockData.users.find((u: any) => u.email === email);
             if (user) {
+                const token = 'mock_token_' + user.id;
+                localStorage.setItem('token', token);
                 return {
-                    access_token: 'mock_token_' + user.id,
+                    access_token: token,
                     user: {
                         id: user.id,
                         name: user.fullName,
@@ -69,8 +71,10 @@ export const auth = {
                 };
             }
             // Auto-login generic if not found (for easy testing)
+            const genericToken = 'mock_token_generic';
+            localStorage.setItem('token', genericToken);
             return {
-                access_token: 'mock_token_generic',
+                access_token: genericToken,
                 user: { id: 'user_gen', name: 'Test User', email, role: 'CUSTOMER' }
             };
         }
