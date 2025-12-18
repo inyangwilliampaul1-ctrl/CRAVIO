@@ -1,0 +1,7 @@
+{
+  "name": "Cravio",
+  "description": "A visual-first food delivery platform combining social discovery with efficient logistics.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
