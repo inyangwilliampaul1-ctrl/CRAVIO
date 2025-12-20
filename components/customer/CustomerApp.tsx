@@ -230,8 +230,14 @@ export default function CustomerApp({ orders, restaurants, onPlaceOrder, onLogou
 
         {isCartOpen ? (
           <div className="h-full bg-white">
-            <div className="p-4 flex items-center gap-2 border-b border-gray-100">
-              <button onClick={() => setIsCartOpen(false)} className="font-bold text-sm text-gray-500">Close</button>
+            <div className="p-4 flex items-center gap-2 border-b border-gray-100 shadow-sm sticky top-0 bg-white z-10">
+              <button
+                onClick={() => setIsCartOpen(false)}
+                className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <ChevronLeft size={24} className="text-gray-900" />
+              </button>
+              <h1 className="text-xl font-bold text-gray-900">Your Order</h1>
             </div>
             <Cart
               items={cart}
