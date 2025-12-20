@@ -49,6 +49,20 @@ export default function CustomerApp({ orders, restaurants, onPlaceOrder, onLogou
 
   // App State
   const [searchQuery, setSearchQuery] = useState("");
+  const [history, setHistory] = useState<string[]>([]);
+
+  const handleNavigate = (newTab: typeof activeTab) => {
+    if (newTab === activeTab) return;
+    setHistory(prev => [...prev, activeTab]);
+    setActiveTab(newTab);
+  };
+
+  const handleBack = () => {
+    if (history.length === 0) return;
+    const previousTab = history[history.length - 1];
+    setHistory(prev => prev.slice(0, -1));
+    setActiveTab(previousTab as any);
+  };
   const [isCartOpen, setIsCartOpen] = useState(false); // Modal cart logic
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false); // Checkout modal logic
   const [location, setLocation] = useState("Victoria Island, Lagos");
@@ -154,9 +168,19 @@ export default function CustomerApp({ orders, restaurants, onPlaceOrder, onLogou
           {/* Location & Cart Header */}
           <div className="flex justify-between items-center mb-3">
             <div className="flex items-center gap-3">
-              <div className="bg-orange-100 p-1.5 rounded-lg">
-                <CravioLogo className="text-orange-600 w-5 h-5" />
-              </div>
+              {history.length > 0 ? (
+                <button
+                  onClick={handleBack}
+                  className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <ChevronLeft size={24} className="text-gray-800" />
+                </button>
+              ) : (
+                <div className="bg-orange-100 p-1.5 rounded-lg">
+                  <CravioLogo className="text-orange-600 w-5 h-5" />
+                </div>
+              )}
+
               <div className="flex flex-col">
                 <span className="text-xs text-gray-500 font-medium uppercase tracking-wide">Delivering to</span>
                 <div
@@ -193,7 +217,7 @@ export default function CustomerApp({ orders, restaurants, onPlaceOrder, onLogou
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
-                  if (activeTab === 'HOME') setActiveTab('SEARCH');
+                  if (activeTab === 'HOME') handleNavigate('SEARCH');
                 }}
               />
             </div>
@@ -270,7 +294,7 @@ export default function CustomerApp({ orders, restaurants, onPlaceOrder, onLogou
                 {/* Profile Menu */}
                 <div className="space-y-3 mb-8">
                   <button
-                    onClick={() => { setActiveTab('WALLET') }} // We'll add this tab state
+                    onClick={() => { handleNavigate('WALLET') }} // We'll add this tab state
                     className="w-full bg-orange-50 p-4 rounded-xl flex items-center justify-between border border-orange-100 shadow-sm"
                   >
                     <div className="flex items-center gap-3">
@@ -286,7 +310,7 @@ export default function CustomerApp({ orders, restaurants, onPlaceOrder, onLogou
                   </button>
 
                   <div className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm">
-                    <div className="p-4 border-b border-gray-50 flex items-center justify-between cursor-pointer hover:bg-gray-50" onClick={() => setActiveTab('SETTINGS')}>
+                    <div className="p-4 border-b border-gray-50 flex items-center justify-between cursor-pointer hover:bg-gray-50" onClick={() => handleNavigate('SETTINGS')}>
                       <span className="text-sm font-bold text-gray-700">Settings</span>
                       <ChevronRight size={16} className="text-gray-400" />
                     </div>
@@ -311,7 +335,7 @@ export default function CustomerApp({ orders, restaurants, onPlaceOrder, onLogou
             {activeTab === 'WALLET' && (
               <div className="h-full">
                 <div className="bg-white p-4 flex items-center gap-2 sticky top-0 z-10">
-                  <button onClick={() => setActiveTab('PROFILE')} className="p-2 hover:bg-gray-100 rounded-full">
+                  <button onClick={handleBack} className="p-2 hover:bg-gray-100 rounded-full">
                     <ChevronLeft size={24} />
                   </button>
                   <span className="font-bold text-lg">Back to Profile</span>
@@ -321,7 +345,7 @@ export default function CustomerApp({ orders, restaurants, onPlaceOrder, onLogou
             )}
 
             {activeTab === 'SETTINGS' && (
-              <SettingsScreen onBack={() => setActiveTab('PROFILE')} />
+              <SettingsScreen onBack={handleBack} />
             )}
           </>
         )}
@@ -342,23 +366,23 @@ export default function CustomerApp({ orders, restaurants, onPlaceOrder, onLogou
       {
         !isCartOpen && !isCheckoutOpen && (
           <div className="bg-white border-t border-gray-100 flex justify-around py-3 pb-6 sticky bottom-0 z-30 shadow-[0_-5px_10px_rgba(0,0,0,0.02)]">
-            <button onClick={() => setActiveTab('HOME')} className={`flex flex-col items-center gap-1 w-16 transition-colors ${activeTab === 'HOME' ? 'text-orange-600' : 'text-gray-400'}`}>
+            <button onClick={() => handleNavigate('HOME')} className={`flex flex-col items-center gap-1 w-16 transition-colors ${activeTab === 'HOME' ? 'text-orange-600' : 'text-gray-400'}`}>
               <Home size={24} strokeWidth={activeTab === 'HOME' ? 3 : 2} />
               <span className="text-[10px] font-medium">Discover</span>
             </button>
-            <button onClick={() => setActiveTab('SEARCH')} className={`flex flex-col items-center gap-1 w-16 transition-colors ${activeTab === 'SEARCH' ? 'text-orange-600' : 'text-gray-400'}`}>
+            <button onClick={() => handleNavigate('SEARCH')} className={`flex flex-col items-center gap-1 w-16 transition-colors ${activeTab === 'SEARCH' ? 'text-orange-600' : 'text-gray-400'}`}>
               <Search size={24} strokeWidth={activeTab === 'SEARCH' ? 3 : 2} />
               <span className="text-[10px] font-medium">Search</span>
             </button>
-            <button onClick={() => setActiveTab('SAVED')} className={`flex flex-col items-center gap-1 w-16 transition-colors ${activeTab === 'SAVED' ? 'text-orange-600' : 'text-gray-400'}`}>
+            <button onClick={() => handleNavigate('SAVED')} className={`flex flex-col items-center gap-1 w-16 transition-colors ${activeTab === 'SAVED' ? 'text-orange-600' : 'text-gray-400'}`}>
               <Heart size={24} fill={activeTab === 'SAVED' ? "currentColor" : "none"} strokeWidth={activeTab === 'SAVED' ? 0 : 2} />
               <span className="text-[10px] font-medium">Saved</span>
             </button>
-            <button onClick={() => setActiveTab('ORDERS')} className={`flex flex-col items-center gap-1 w-16 transition-colors ${activeTab === 'ORDERS' ? 'text-orange-600' : 'text-gray-400'}`}>
+            <button onClick={() => handleNavigate('ORDERS')} className={`flex flex-col items-center gap-1 w-16 transition-colors ${activeTab === 'ORDERS' ? 'text-orange-600' : 'text-gray-400'}`}>
               <ShoppingBag size={24} strokeWidth={activeTab === 'ORDERS' ? 3 : 2} />
               <span className="text-[10px] font-medium">Orders</span>
             </button>
-            <button onClick={() => setActiveTab('PROFILE')} className={`flex flex-col items-center gap-1 w-16 transition-colors ${activeTab === 'PROFILE' ? 'text-orange-600' : 'text-gray-400'}`}>
+            <button onClick={() => handleNavigate('PROFILE')} className={`flex flex-col items-center gap-1 w-16 transition-colors ${activeTab === 'PROFILE' ? 'text-orange-600' : 'text-gray-400'}`}>
               <UserIcon size={24} strokeWidth={activeTab === 'PROFILE' ? 3 : 2} />
               <span className="text-[10px] font-medium">Profile</span>
             </button>
