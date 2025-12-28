@@ -6,7 +6,7 @@ import CheckoutScreen from './CheckoutScreen';
 import OrdersView from './OrdersView';
 import CraveList from './CraveList';
 import FoodDetailModal from './FoodDetailModal';
-import { Home, Search, ShoppingBag, User as UserIcon, MapPin, ChevronDown, Heart, Wallet, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Home, Search, ShoppingBag, User as UserIcon, MapPin, ChevronDown, Heart, Wallet, ChevronRight, ChevronLeft, LogIn } from 'lucide-react';
 import WalletScreen from './WalletScreen';
 import SettingsScreen from './SettingsScreen';
 
@@ -15,6 +15,8 @@ interface CustomerAppProps {
   restaurants: Restaurant[];
   onPlaceOrder: (items: { item: FoodItem; quantity: number }[], paymentMethod: 'FULL_PREPAID' | 'PARTIAL_COURIER', deliveryFee: number, isTransfer: boolean, fulfillmentType: 'DELIVERY' | 'PICKUP', locationStr: string, coordinates?: { lat: number; lng: number }) => void;
   onLogout: () => void;
+  isGuest?: boolean;
+  onSignIn?: () => void;
 }
 
 
@@ -40,7 +42,7 @@ const CravioLogo = ({ className }: { className?: string }) => (
   </svg>
 );
 
-export default function CustomerApp({ orders, restaurants, onPlaceOrder, onLogout }: CustomerAppProps) {
+export default function CustomerApp({ orders, restaurants, onPlaceOrder, onLogout, isGuest = false, onSignIn }: CustomerAppProps) {
   const [activeTab, setActiveTab] = useState<'HOME' | 'SEARCH' | 'SAVED' | 'ORDERS' | 'PROFILE' | 'WALLET' | 'SETTINGS'>('HOME');
 
   // Cart state
@@ -111,6 +113,10 @@ export default function CustomerApp({ orders, restaurants, onPlaceOrder, onLogou
   };
 
   const handleProceedToCheckout = () => {
+    if (isGuest && onSignIn) {
+      onSignIn();
+      return;
+    }
     setIsCartOpen(false);
     setIsCheckoutOpen(true);
   };
@@ -141,6 +147,10 @@ export default function CustomerApp({ orders, restaurants, onPlaceOrder, onLogou
 
   const toggleSaveItem = (e: React.MouseEvent, itemId: string) => {
     e.stopPropagation();
+    if (isGuest && onSignIn) {
+      onSignIn();
+      return;
+    }
     setSavedItemIds(prev => {
       const newSet = new Set(prev);
       if (newSet.has(itemId)) newSet.delete(itemId);
@@ -193,17 +203,28 @@ export default function CustomerApp({ orders, restaurants, onPlaceOrder, onLogou
               </div>
             </div>
 
-            <button
-              onClick={() => setIsCartOpen(true)}
-              className="relative p-2 bg-gray-50 rounded-full hover:bg-gray-100 transition"
-            >
-              <ShoppingBag className="text-gray-800" size={20} />
-              {cartTotalItems > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-orange-600 rounded-full text-[10px] text-white flex items-center justify-center font-bold border-2 border-white">
-                  {cartTotalItems}
-                </span>
+            <div className="flex items-center gap-2">
+              {isGuest && (
+                <button
+                  onClick={onSignIn}
+                  className="flex items-center gap-1 bg-orange-600 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-sm hover:bg-orange-700 transition"
+                >
+                  <LogIn size={14} />
+                  Sign In
+                </button>
               )}
-            </button>
+              <button
+                onClick={() => setIsCartOpen(true)}
+                className="relative p-2 bg-gray-50 rounded-full hover:bg-gray-100 transition"
+              >
+                <ShoppingBag className="text-gray-800" size={20} />
+                {cartTotalItems > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-orange-600 rounded-full text-[10px] text-white flex items-center justify-center font-bold border-2 border-white">
+                    {cartTotalItems}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Search Bar - Only on Home/Search */}
@@ -289,50 +310,71 @@ export default function CustomerApp({ orders, restaurants, onPlaceOrder, onLogou
             {activeTab === 'PROFILE' && (
               <div className="p-6">
                 <h1 className="text-2xl font-bold mb-6">Profile</h1>
-                <div className="flex items-center gap-4 mb-8">
-                  <div className="w-16 h-16 bg-gray-200 rounded-full"></div>
-                  <div>
-                    <h3 className="font-bold text-lg">John Doe</h3>
-                    <p className="text-gray-500">Customer</p>
+
+                {isGuest ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <div className="bg-orange-100 p-6 rounded-full text-orange-600 mb-6">
+                      <UserIcon size={48} />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Log in to your account</h3>
+                    <p className="text-gray-500 mb-8 max-w-xs">
+                      Sign in to access your orders, wallet, and saved addresses.
+                    </p>
+                    <button
+                      onClick={onSignIn}
+                      className="w-full bg-orange-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-orange-700 transition transform active:scale-95"
+                    >
+                      Sign In / Sign Up
+                    </button>
                   </div>
-                </div>
-
-                {/* Profile Menu */}
-                <div className="space-y-3 mb-8">
-                  <button
-                    onClick={() => { handleNavigate('WALLET') }} // We'll add this tab state
-                    className="w-full bg-orange-50 p-4 rounded-xl flex items-center justify-between border border-orange-100 shadow-sm"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="bg-orange-100 p-2 rounded-lg text-orange-600">
-                        <Wallet size={24} />
-                      </div>
-                      <div className="text-left">
-                        <p className="font-bold text-gray-900">My Wallet</p>
-                        <p className="text-xs text-gray-500 font-medium">Balance: ₦15,000</p>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-4 mb-8">
+                      <div className="w-16 h-16 bg-gray-200 rounded-full"></div>
+                      <div>
+                        <h3 className="font-bold text-lg">John Doe</h3>
+                        <p className="text-gray-500">Customer</p>
                       </div>
                     </div>
-                    <ChevronRight size={20} className="text-gray-400" />
-                  </button>
 
-                  <div className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm">
-                    <div className="p-4 border-b border-gray-50 flex items-center justify-between cursor-pointer hover:bg-gray-50" onClick={() => handleNavigate('SETTINGS')}>
-                      <span className="text-sm font-bold text-gray-700">Settings</span>
-                      <ChevronRight size={16} className="text-gray-400" />
-                    </div>
-                    <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50">
-                      <span className="text-sm font-bold text-gray-700">Support</span>
-                      <ChevronRight size={16} className="text-gray-400" />
-                    </div>
-                  </div>
-                </div>
+                    {/* Profile Menu */}
+                    <div className="space-y-3 mb-8">
+                      <button
+                        onClick={() => { handleNavigate('WALLET') }} // We'll add this tab state
+                        className="w-full bg-orange-50 p-4 rounded-xl flex items-center justify-between border border-orange-100 shadow-sm"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="bg-orange-100 p-2 rounded-lg text-orange-600">
+                            <Wallet size={24} />
+                          </div>
+                          <div className="text-left">
+                            <p className="font-bold text-gray-900">My Wallet</p>
+                            <p className="text-xs text-gray-500 font-medium">Balance: ₦15,000</p>
+                          </div>
+                        </div>
+                        <ChevronRight size={20} className="text-gray-400" />
+                      </button>
 
-                <button
-                  onClick={onLogout}
-                  className="w-full py-3 border border-gray-300 rounded-xl text-gray-600 font-semibold hover:bg-gray-50"
-                >
-                  Sign Out
-                </button>
+                      <div className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm">
+                        <div className="p-4 border-b border-gray-50 flex items-center justify-between cursor-pointer hover:bg-gray-50" onClick={() => handleNavigate('SETTINGS')}>
+                          <span className="text-sm font-bold text-gray-700">Settings</span>
+                          <ChevronRight size={16} className="text-gray-400" />
+                        </div>
+                        <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50">
+                          <span className="text-sm font-bold text-gray-700">Support</span>
+                          <ChevronRight size={16} className="text-gray-400" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={onLogout}
+                      className="w-full py-3 border border-gray-300 rounded-xl text-gray-600 font-semibold hover:bg-gray-50"
+                    >
+                      Sign Out
+                    </button>
+                  </>
+                )}
               </div>
             )}
 

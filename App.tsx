@@ -60,9 +60,14 @@ interface ErrorBoundaryState {
 }
 
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  // Explicitly declare state type to satisfy strict linter
+  state: ErrorBoundaryState = { hasError: false, error: null };
+  // explicit props
+  props: ErrorBoundaryProps;
+
   constructor(props: ErrorBoundaryProps) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.props = props;
   }
 
   static getDerivedStateFromError(error: any) {
@@ -98,7 +103,9 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 }
 
 export default function App() {
-  const [currentRole, setCurrentRole] = useState<UserRole | null>(null);
+  const [currentRole, setCurrentRole] = useState<UserRole | null>('CUSTOMER'); // Default to CUSTOMER for landing
+  const [isGuest, setIsGuest] = useState(true); // Default to Guest
+  const [showAuth, setShowAuth] = useState(false); // Controls Auth Screen visibility
   const [currentUserProfile, setCurrentUserProfile] = useState<Restaurant | undefined>(undefined);
   const [orders, setOrders] = useState<Order[]>([]);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
@@ -119,6 +126,8 @@ export default function App() {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
+      setIsGuest(false); // Valid token means not guest
+      setShowAuth(false);
       if (token.startsWith('mock_token_')) {
         // Mock Mode Restoration
         const userId = token.replace('mock_token_', '');
@@ -137,28 +146,25 @@ export default function App() {
           }
         }
       } else {
-        // Real Backend Restoration (would usually call /auth/me)
-        // For now, if we have a token, we assume customer or force re-login if it expires.
-        // Let's just assume customer for safety in this hybrid state, or trigger a fetch.
+        // Real Backend Restoration
         console.log("Found real token, restoring session...");
-        // In a full implementation, we'd fetch profile here.
+        setIsGuest(false);
       }
+    } else {
+      // No token, ensure Guest Mode
+      setIsGuest(true);
+      setCurrentRole('CUSTOMER');
     }
   }, []);
 
   // Polling Effect based on Role
   useEffect(() => {
-    if (!currentRole) return;
+    if (!currentRole || isGuest) return; // Don't poll in guest mode
 
     const fetchOrders = async () => {
       try {
         if (currentRole === 'VENDOR') {
           const data = await vendor.getOrders();
-          // Mapper needed if backend shape differs from frontend types
-          // Backend Order has `items`, `status`, etc.
-          // Frontend expects: { id, customerId, restaurantId, items: [], totalAmount, status... }
-          // We might need to map it.
-          // For Verified Golden Path, assuming mostly compatible or I map here.
           setOrders(data);
         } else if (currentRole === 'RIDER') {
           const data = await courier.getAssignedOrders();
@@ -172,26 +178,25 @@ export default function App() {
     fetchOrders(); // Initial call
     const interval = setInterval(fetchOrders, 3000); // Poll every 3s
     return () => clearInterval(interval);
-  }, [currentRole]);
+  }, [currentRole, isGuest]);
 
 
   // Handlers
   const handleLogin = async (role: UserRole, email: string) => {
-    // In real auth, AuthScreen handles the API call and passes role up?
-    // Or we do it here.
-    // AuthScreen currently mocks it. We need to intercept or pass a real login handler to AuthScreen.
-    // Let's assume AuthScreen calls onLogin with role.
-    // But we need the TOKEN.
-    // So AuthScreen needs to be updated to use `api.auth.login`.
-    // We'll update AuthScreen next. For now, assume it sets token and returns us the role.
     setCurrentRole(role);
-    // Fetch profile if needed? backend handles role.
+    setIsGuest(false);
+    setShowAuth(false); // Hide auth screen
   };
 
   const handleLogout = () => {
-    setCurrentRole(null);
-    setCurrentUserProfile(undefined);
     localStorage.removeItem('token');
+    setIsGuest(true);
+    setCurrentRole('CUSTOMER'); // Go back to guest customer view
+    setCurrentUserProfile(undefined);
+  };
+
+  const handleSignInClick = () => {
+    setShowAuth(true);
   };
 
   const placeOrder = async (
@@ -203,15 +208,18 @@ export default function App() {
     locationStr: string = 'Lagos',
     coordinates?: { lat: number; lng: number }
   ) => {
+    if (isGuest) {
+      alert("Please Sign In to place an order.");
+      setShowAuth(true);
+      return;
+    }
+
     if (items.length === 0) return;
 
     // Construct Payload for Backend
     const backendItems = items.map(i => ({ menuItemId: i.item.id, quantity: i.quantity }));
 
     // Calculate Amount Due on Delivery
-    // If PARTIAL_COURIER, the user pays the Delivery Fee in cash to the rider.
-    // If FULL_PREPAID, they pay 0 on delivery.
-    // If PICKUP, they pay 0 on delivery (and fee is likely 0).
     const amountDueOnDelivery = (fulfillmentType === 'DELIVERY' && paymentMethod === 'PARTIAL_COURIER')
       ? deliveryFee
       : 0;
@@ -230,7 +238,6 @@ export default function App() {
     try {
       await customer.checkout(payload);
       alert("Order Placed Successfully!");
-      // Refresh? Customer orders usually distinct from 'orders' state used by Vendor/Rider dashboards
     } catch (e) {
       console.error("Checkout Failed", e);
       alert("Checkout Failed");
@@ -238,22 +245,16 @@ export default function App() {
   };
 
   const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
-    // Determine action based on status transition intent
-    // Frontend 'status' is the target status
     try {
       if (currentRole === 'VENDOR') {
-        // Use generic status update as requested
         await vendor.updateStatus(orderId, status);
       } else if (currentRole === 'RIDER') {
         if (status === 'DELIVERED') {
           await courier.completeOrder(orderId);
         } else {
-          // Handle PICKED_UP, ON_WAY, etc.
           await courier.updateStatus(orderId, status);
         }
       }
-      // Optimistic update or wait for poll? 
-      // Wait for poll is safer.
     } catch (e) {
       console.error("Update Status Failed", e);
       alert("Action Failed");
@@ -261,7 +262,7 @@ export default function App() {
   };
 
   // Router Logic
-  if (!currentRole) {
+  if (showAuth) {
     return <AuthScreen onLogin={handleLogin} />;
   }
 
@@ -274,6 +275,8 @@ export default function App() {
             restaurants={restaurants}
             onPlaceOrder={placeOrder}
             onLogout={handleLogout}
+            isGuest={isGuest}
+            onSignIn={handleSignInClick}
           />
         )}
 
