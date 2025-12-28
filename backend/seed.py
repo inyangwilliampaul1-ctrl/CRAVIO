@@ -159,6 +159,25 @@ def generate_menu_items(conn, metadata, vendor_ids):
         "DRINKS": ["Chapman", "Zobo", "Fresh Juice", "Soda"],
     }
     
+    def get_image_url(name, category):
+        name_lower = name.lower()
+        # Local Images
+        if "jollof" in name_lower: return "/images/food/jollof_rice.png"
+        if "suya" in name_lower: return "/images/food/suya_platter.png"
+        
+        # Approximate Local mappings
+        if category == "RICE": return "/images/food/jollof_rice.png" # Safe bet for demo
+        if category == "GRILLS": return "/images/food/suya_platter.png"
+
+        # Specific Placeholders for others
+        encoded_name = name.replace(" ", "+").replace("&", "and")
+        bg_color = "f97316" # Orange
+        text_color = "ffffff"
+        if category == "SWALLOW": bg_color = "yellow"
+        if category == "SOUPS": bg_color = "red"
+        
+        return f"https://placehold.co/600x400/{bg_color}/{text_color}?text={encoded_name}"
+    
     for vid in vendor_ids:
         # Generate 5-10 items per vendor
         num_items = random.randint(5, 10)
@@ -173,6 +192,8 @@ def generate_menu_items(conn, metadata, vendor_ids):
 
             price = round(random.uniform(2500, 8000), -2) # Round to nearest 100
             
+            image_url = get_image_url(item_name, cat_key)
+            
             item_id = str(uuid.uuid4())
             data = {
                 "id": item_id,
@@ -182,12 +203,8 @@ def generate_menu_items(conn, metadata, vendor_ids):
                 "price": price,
                 "category": cat_key,
                 "customization": "Spicy, Extra Plantain" if "Rice" in item_name else None,
-                "imageUrl": "https://placehold.co/400x300?text=Food", # Placeholder
+                "imageUrl": image_url,
                 "isAvailable": True,
-                "prepTimeMinutes": random.choice([15, 20, 30, 45]),
-                "rating": round(random.uniform(4.0, 5.0), 1),
-                "likes": random.randint(10, 500),
-                "reviews": [],
                 "createdAt": datetime.now(),
                 "updatedAt": datetime.now()
             }
